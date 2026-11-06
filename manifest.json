@@ -1,0 +1,25 @@
+{
+  "name": "3D 데이터 시각화 대시보드",
+  "short_name": "3D시각화",
+  "description": "사용자 CSV 데이터 기반 3D 및 2D 인터랙티브 시각화 대시보드",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
