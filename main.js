@@ -314,23 +314,7 @@ function displayAnalysis(analysis) {
         html += statRow('표준편차', fmt(s.stddev));
     });
 
-    const best3D = inferBest3DStyle(analysis.headers, Object.values(analysis.numericStats)[0]?.mean ? [1] : [], analysis);
-    const styleKorean = {
-        pie: '🥧 3D 파이 슬라이스',
-        line: '📈 3D 입체 튜브 라인',
-        scatter: '🌐 3D 입체 산점도',
-        surface: '🌊 3D 곡면 서피스',
-        cylinder: '● 3D 원기둥 막대',
-        box: '📊 3D 직육면체 막대'
-    }[best3D] || '📊 3D 막대';
-
-    html += `<div style="margin-top:10px;"><strong style="color:#4338ca;">추천 시각화:</strong></div>`;
-    html += `<div style="margin-bottom:4px;"><span class="recommend-badge" style="background:#dcfce7; color:#15803d;">3D 추천: ${styleKorean}</span></div>`;
-    const typeIcons = { bar:'📊 막대', horizontalBar:'📊 가로막대', line:'📈 선', pie:'🥧 파이', doughnut:'🍩 도넛', scatter:'⚬ 산점도', radar:'🕸 레이더', polarArea:'🎯 폴라' };
-    analysis.recommendedCharts.slice(0, 4).forEach(r => {
-        html += `<span class="recommend-badge">${typeIcons[r.type] || r.type}</span>`;
-    });
-    html += `<div style="font-size:10px;color:#64748b;margin-top:4px;">${analysis.recommendedCharts[0].reason}</div>`;
+    html += `<div id="dynamic-recommend-box"></div>`;
     analysisResultEl.innerHTML = html;
 }
 
@@ -424,12 +408,113 @@ function clearScene() {
 
 function inferBest3DStyle(labels, values, analysis) {
     if (!analysis) return 'box';
-    if (analysis.dateCols.length > 0) return 'line';
+
+    const xIdx = parseInt(xAxisSelect ? xAxisSelect.value : 0);
+    const yIdx = parseInt(yAxisSelect ? yAxisSelect.value : (analysis.numericCols[0] || 0));
+    const isXDate = analysis.dateCols.includes(xIdx);
     const count = labels.length;
-    if (count <= 8 && count >= 2) return 'pie';
-    if (analysis.numericCols.length >= 2 && count > 12) return 'scatter';
-    if (count >= 16) return 'surface';
-    return count > 10 ? 'cylinder' : 'box';
+
+    // 1) 날짜/시계열 축인 경우 -> 3D 튜브 라인 또는 입체 면적
+    if (isXDate) {
+        return count >= 10 ? 'area' : 'line';
+    }
+
+    // 2) 카테고리 수가 적고(<=8개) 비율/점유율 비교 -> 파이 또는 도넛
+    if (count <= 8 && count >= 2) {
+        return count <= 5 ? 'pie' : 'donut';
+    }
+
+    // 3) 수치형 컬럼이 2개 이상이고 산포도 확인 적합 -> 입체 산점도
+    if (analysis.numericCols.length >= 2 && count > 14) {
+        return 'scatter';
+    }
+
+    // 4) 항목이 16개 이상으로 연속적이거나 광범위 -> 3D 곡면 서피스
+    if (count >= 16) {
+        return 'surface';
+    }
+
+    // 5) 항목이 8~15개 범주 비교 -> 원기둥 타워 또는 피라미드
+    if (count >= 8) {
+        return 'cylinder';
+    }
+
+    return 'box';
+}
+
+// 현재 선택된 축/필터 데이터 옵션 기반 실시간 시각화 추천 계산
+function getDynamicRecommendations(labels, values, analysis) {
+    if (!analysis) return [];
+
+    const xIdx = parseInt(xAxisSelect.value);
+    const yIdx = parseInt(yAxisSelect.value);
+    const isXDate = analysis.dateCols.includes(xIdx);
+    const count = labels.length;
+    const recs = [];
+
+    if (isXDate) {
+        recs.push({ type: 'line', reason: `X축[${analysis.headers[xIdx]}]이 시계열 데이터이므로 추세선이 가장 적합합니다.` });
+        recs.push({ type: 'area', reason: '시간 경과에 따른 누적 볼륨을 3D 입체 면적으로 파악하기 좋습니다.' });
+    }
+
+    if (count <= 8 && count >= 2) {
+        recs.push({ type: 'pie', reason: `항목 수(${count}개)가 적어 원형 비율 및 점유율 파악에 이상적입니다.` });
+        recs.push({ type: 'donut', reason: '중앙 링 구조로 데이터 비율을 현대적으로 표현합니다.' });
+    }
+
+    if (analysis.numericCols.length >= 2) {
+        recs.push({ type: 'scatter', reason: '다변량 수치 간의 상관관계 및 이상치 분포를 3D 공간에 매핑합니다.' });
+    }
+
+    if (count >= 15) {
+        recs.push({ type: 'surface', reason: `항목 수(${count}개)가 많아 연속된 3D 곡면 지형으로 전반적 패턴을 조망하기 좋습니다.` });
+        recs.push({ type: 'horizontalBar', reason: '많은 라벨을 가로로 배치하여 텍스트 겹침 없이 비교합니다.' });
+    } else {
+        recs.push({ type: 'bar', reason: '각 항목별 정밀한 수치 크기를 비교하기 가장 명확합니다.' });
+        recs.push({ type: 'cylinder', reason: '원기둥 기둥으로 회전 대칭적 시인성을 제공합니다.' });
+    }
+
+    return recs;
+}
+
+// 데이터 옵션(X축/Y축/필터/정렬) 변경 시 실시간으로 추천 배지 및 가이드 갱신
+function updateDynamicRecommendations(labels, values, analysis) {
+    if (!analysis) return;
+
+    const best3D = inferBest3DStyle(labels, values, analysis);
+    const styleKorean = {
+        pie: '🥧 3D 파이 슬라이스',
+        donut: '🍩 3D 도넛 링 차트',
+        line: '📈 3D 입체 튜브 라인',
+        area: '🏔️ 3D 산악형 면적 차트',
+        scatter: '🌐 3D 입체 산점도',
+        surface: '🌊 3D 곡면 서피스',
+        cylinder: '● 3D 원기둥 타워',
+        pyramid: '🔺 3D 피라미드 타워',
+        box: '📊 3D 직육면체 막대'
+    }[best3D] || '📊 3D 막대';
+
+    const recs = getDynamicRecommendations(labels, values, analysis);
+    const typeIcons = { bar:'📊 막대', horizontalBar:'📊 가로막대', line:'📈 선', pie:'🥧 파이', doughnut:'🍩 도넛', scatter:'⚬ 산점도', radar:'🕸 레이더', polarArea:'🎯 폴라' };
+
+    let html = '';
+    html += `<div style="margin-top:10px;"><strong style="color:#4338ca;">✨ 현재 옵션 맞춤 추천:</strong></div>`;
+    html += `<div style="margin:4px 0;"><span class="recommend-badge" style="background:#dcfce7; color:#15803d; font-size:11px;">3D 추천: ${styleKorean}</span></div>`;
+
+    recs.slice(0, 3).forEach(r => {
+        if (typeIcons[r.type]) {
+            html += `<span class="recommend-badge" style="background:#e0e7ff; color:#4338ca;">${typeIcons[r.type]}</span>`;
+        }
+    });
+
+    if (recs.length > 0) {
+        html += `<div style="font-size:11px; color:#4f46e5; margin-top:5px; line-height:1.4; background:#f0fdf4; padding:6px 8px; border-radius:6px; border:1px solid #bbf7d0;">💡 ${recs[0].reason}</div>`;
+    }
+
+    const recEl = document.getElementById('dynamic-recommend-box');
+    if (recEl) {
+        recEl.innerHTML = html;
+    }
 }
 
 // 색상 테마 팔레트 생성 함수
@@ -1092,6 +1177,7 @@ function render2DChart() {
 
     render3DVisualization(labels, values);
     renderDataTable(parsedData);
+    updateDynamicRecommendations(labels, values, analysisResult);
 }
 
 function chartOptions(type, xLabel, yLabel) {
@@ -1149,6 +1235,18 @@ function processData(sourceName) {
 }
 
 chartTypeSelect.addEventListener('change', () => { if (parsedData) applyVisualization(); });
+
+// X축 또는 Y축 옵션을 변경할 때마다 즉시 실시간 맞춤 시각화 추천 및 화면 갱신
+xAxisSelect.addEventListener('change', () => {
+    if (!parsedData) return;
+    updateFilter(parseInt(xAxisSelect.value));
+    applyVisualization();
+});
+yAxisSelect.addEventListener('change', () => {
+    if (!parsedData) return;
+    applyVisualization();
+});
+
 applyBtn.addEventListener('click', () => {
     if (!parsedData) return;
     updateFilter(parseInt(xAxisSelect.value));
