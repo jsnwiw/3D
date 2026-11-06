@@ -497,15 +497,21 @@ function updateDynamicRecommendations(labels, values, analysis) {
     const recs = getDynamicRecommendations(labels, values, analysis);
     const typeIcons = { bar:'📊 막대', horizontalBar:'📊 가로막대', line:'📈 선', pie:'🥧 파이', doughnut:'🍩 도넛', scatter:'⚬ 산점도', radar:'🕸 레이더', polarArea:'🎯 폴라' };
 
-    let html = '';
-    html += `<div style="margin-top:10px;"><strong style="color:#4338ca;">✨ 현재 옵션 맞춤 추천:</strong></div>`;
-    html += `<div style="margin:4px 0;"><span class="recommend-badge" style="background:#dcfce7; color:#15803d; font-size:11px;">3D 추천: ${styleKorean}</span></div>`;
-
-    recs.slice(0, 3).forEach(r => {
-        if (typeIcons[r.type]) {
-            html += `<span class="recommend-badge" style="background:#e0e7ff; color:#4338ca;">${typeIcons[r.type]}</span>`;
-        }
+    // 추천 2D 차트 결정
+    const valid2DTypes = ['bar', 'horizontalBar', 'line', 'pie', 'doughnut', 'scatter', 'radar', 'polarArea'];
+    const matched2D = recs.find(r => {
+        const mapped = r.type === 'donut' ? 'doughnut' : r.type;
+        return valid2DTypes.includes(mapped);
     });
+    const best2DType = matched2D ? (matched2D.type === 'donut' ? 'doughnut' : matched2D.type) : 'bar';
+    const best2DLabel = typeIcons[best2DType] || '📊 막대';
+
+    let html = '';
+    html += `<div style="margin-top:10px;"><strong style="color:#4338ca;">✨ 선택 데이터 자동 추천:</strong></div>`;
+    html += `<div style="display:flex; flex-wrap:wrap; gap:4px; margin:4px 0;">`;
+    html += `<span class="recommend-badge" style="background:#dcfce7; color:#15803d; font-size:11px; font-weight:700;">3D 자동적용: ${styleKorean}</span>`;
+    html += `<span class="recommend-badge" style="background:#e0e7ff; color:#4338ca; font-size:11px; font-weight:700;">2D 자동적용: ${best2DLabel}</span>`;
+    html += `</div>`;
 
     if (recs.length > 0) {
         html += `<div style="font-size:11px; color:#4f46e5; margin-top:5px; line-height:1.4; background:#f0fdf4; padding:6px 8px; border-radius:6px; border:1px solid #bbf7d0;">💡 ${recs[0].reason}</div>`;
@@ -1137,11 +1143,22 @@ function render2DChart() {
     const yIdx = parseInt(yAxisSelect.value);
     const rows = getFilteredRows();
 
-    let chartType = chartTypeSelect.value;
-    if (chartType === 'auto') chartType = analysisResult.recommendedCharts[0].type;
-
     const labels = rows.map(r => r[xIdx]);
     const values = rows.map(r => parseFloat(r[yIdx]) || 0);
+
+    // 현재 변경된 데이터 옵션(X축, Y축, 행 개수, 데이터 타입) 기반 동적 추천 산출
+    const dynamicRecs = getDynamicRecommendations(labels, values, analysisResult);
+
+    let chartType = chartTypeSelect.value;
+    if (chartType === 'auto') {
+        // 선택된 데이터의 최적 2D 차트 추천 자동 선택
+        const valid2DTypes = ['bar', 'horizontalBar', 'line', 'pie', 'doughnut', 'scatter', 'radar', 'polarArea'];
+        const matchedRec = dynamicRecs.find(r => {
+            const mapped = r.type === 'donut' ? 'doughnut' : r.type;
+            return valid2DTypes.includes(mapped);
+        });
+        chartType = matchedRec ? (matchedRec.type === 'donut' ? 'doughnut' : matchedRec.type) : 'bar';
+    }
 
     if (chart2d) { chart2d.destroy(); chart2d = null; }
     chartPanel.style.display = '';
