@@ -111,6 +111,15 @@ const hoverTooltip = $('hover-tooltip');
 const tooltipName = $('tooltip-name');
 const tooltipValue = $('tooltip-value');
 const labelLayer = $('label-layer');
+const barStyleSelect = $('bar-style');
+const btnLoadSample = $('btn-load-sample');
+const menuPanel = $('menu-panel');
+const btnToggleMenu = $('btn-toggle-menu');
+const btnCloseMenu = $('btn-close-menu');
+const autoRecommendToggle = $('auto-recommend-toggle');
+const autoRecommendStatusBadge = $('auto-recommend-status-badge');
+const appliedRecommendNotice = $('applied-recommend-notice');
+const btnForceRecommend = $('btn-force-recommend');
 
 // ════════════════════════════════════════════════════════════
 // 4. 카메라 제어 (부드러운 전환 & 프리셋 뷰)
@@ -171,15 +180,69 @@ $('btn-fullscreen').addEventListener('click', () => {
 });
 
 // ════════════════════════════════════════════════════════════
-// 5. 환경 설정 UI
+// 5. 대시보드 메뉴 & 아코디언 설정 (단일 패널 오픈)
 // ════════════════════════════════════════════════════════════
-document.querySelectorAll('.collapsible-header').forEach(header => {
-    header.addEventListener('click', () => {
-        header.classList.toggle('open');
-        const body = header.nextElementSibling;
-        body.style.display = body.style.display === 'none' ? '' : 'none';
+function openAccordionSection(sectionId) {
+    const section = document.getElementById(sectionId);
+    if (!section) return;
+    const header = section.querySelector('.accordion-header');
+    const body = section.querySelector('.accordion-body');
+    if (!header || !body) return;
+
+    // 다른 모든 아코디언 닫기
+    document.querySelectorAll('.accordion-header').forEach(h => {
+        h.classList.remove('active');
+        const icon = h.querySelector('.chevron');
+        if (icon) icon.textContent = '▾';
     });
-});
+    document.querySelectorAll('.accordion-body').forEach(b => {
+        b.classList.remove('open');
+    });
+    document.querySelectorAll('.accordion-item').forEach(it => {
+        it.classList.remove('active');
+    });
+
+    // 선택된 섹션만 열기
+    section.classList.add('active');
+    header.classList.add('active');
+    body.classList.add('open');
+    const icon = header.querySelector('.chevron');
+    if (icon) icon.textContent = '▴';
+}
+
+function initAccordion() {
+    document.querySelectorAll('.accordion-header').forEach(header => {
+        header.addEventListener('click', () => {
+            const targetId = header.getAttribute('data-target');
+            const targetBody = document.getElementById(targetId);
+            const item = header.closest('.accordion-item');
+            const isAlreadyOpen = targetBody && targetBody.classList.contains('open');
+
+            // 다른 열려있는 모든 패널 닫기
+            document.querySelectorAll('.accordion-header').forEach(h => {
+                h.classList.remove('active');
+                const icon = h.querySelector('.chevron');
+                if (icon) icon.textContent = '▾';
+            });
+            document.querySelectorAll('.accordion-body').forEach(b => {
+                b.classList.remove('open');
+            });
+            document.querySelectorAll('.accordion-item').forEach(it => {
+                it.classList.remove('active');
+            });
+
+            // 클릭한 패널이 닫혀있었으면 열기 (이미 열려있었다면 닫힌 상태 유지)
+            if (!isAlreadyOpen && targetBody) {
+                header.classList.add('active');
+                targetBody.classList.add('open');
+                if (item) item.classList.add('active');
+                const icon = header.querySelector('.chevron');
+                if (icon) icon.textContent = '▴';
+            }
+        });
+    });
+}
+initAccordion();
 
 $('ambient-intensity').addEventListener('input', e => { ambientLight.intensity = parseFloat(e.target.value); });
 $('point-intensity').addEventListener('input', e => { pointLight.intensity = parseFloat(e.target.value); });
@@ -1050,6 +1113,8 @@ function highlightTableRow(idx) {
 // ════════════════════════════════════════════════════════════
 function showDetailCard(ud, idx) {
     detailSection.style.display = '';
+    openAccordionSection('detail-card-section');
+    if (menuPanel) menuPanel.classList.add('open');
     detailName.textContent = `📌 ${ud.name}`;
 
     if (!parsedData) return;
@@ -1240,6 +1305,25 @@ csvUpload.addEventListener('change', (e) => {
     reader.readAsText(file);
 });
 
+const SAMPLE_CSV = `지역,매출,비용,이익
+서울,15000,8500,6500
+부산,9200,5100,4100
+대구,7800,4200,3600
+인천,8500,4800,3700
+광주,5600,3200,2400
+대전,6100,3500,2600
+울산,4800,2700,2100
+세종,3200,1800,1400
+제주,6700,3900,2800
+수원,7100,4000,3100`;
+
+btnLoadSample?.addEventListener('click', () => {
+    parsedData = parseCSV(SAMPLE_CSV);
+    if (!parsedData) return;
+    fileNameDisplay.textContent = 'sample_data.csv (기본 샘플)';
+    processData('기본 샘플 데이터');
+});
+
 function processData(sourceName) {
     analysisResult = analyzeData(parsedData);
     displayAnalysis(analysisResult);
@@ -1249,7 +1333,51 @@ function processData(sourceName) {
 
     statusIndicator.textContent = `● ${sourceName}`;
     statusIndicator.className = 'status online';
+
+    // 메뉴 패널 열고 시각화 설정 아코디언 열기
+    if (menuPanel) menuPanel.classList.add('open');
+    openAccordionSection('viz-section');
 }
+
+// 메뉴 드로어 토글
+btnToggleMenu?.addEventListener('click', () => {
+    if (menuPanel) menuPanel.classList.toggle('open');
+});
+btnCloseMenu?.addEventListener('click', () => {
+    if (menuPanel) menuPanel.classList.remove('open');
+});
+
+// 자동 추천 토글 및 즉시 적용 버튼
+autoRecommendToggle?.addEventListener('change', () => {
+    const isAuto = autoRecommendToggle.checked;
+    if (autoRecommendStatusBadge) {
+        autoRecommendStatusBadge.textContent = isAuto ? 'ON (자동)' : 'OFF (수동)';
+        autoRecommendStatusBadge.className = isAuto ? 'badge-auto-on' : 'badge-auto-off';
+    }
+    if (appliedRecommendNotice) {
+        appliedRecommendNotice.textContent = isAuto
+            ? '선택한 데이터에 맞춰 3D 및 2D 시각화가 최적으로 자동 적용됩니다.'
+            : '수동 설정 모드입니다. 원하는 3D 형태와 2D 차트를 직접 지정하세요.';
+    }
+});
+
+btnForceRecommend?.addEventListener('click', () => {
+    if (!parsedData || !analysisResult) return;
+    const xIdx = parseInt(xAxisSelect.value);
+    const yIdx = parseInt(yAxisSelect.value);
+    const rows = getFilteredRows();
+    const labels = rows.map(r => r[xIdx]);
+    const values = rows.map(r => parseFloat(r[yIdx]) || 0);
+    const best3D = inferBest3DStyle(labels, values, analysisResult);
+    if (barStyleSelect) barStyleSelect.value = best3D;
+    const recs = getDynamicRecommendations(labels, values, analysisResult);
+    const valid2DTypes = ['bar', 'horizontalBar', 'line', 'pie', 'doughnut', 'scatter', 'radar', 'polarArea'];
+    const matched2D = recs.find(r => valid2DTypes.includes(r.type === 'donut' ? 'doughnut' : r.type));
+    if (matched2D && chartTypeSelect) {
+        chartTypeSelect.value = matched2D.type === 'donut' ? 'doughnut' : matched2D.type;
+    }
+    applyVisualization();
+});
 
 chartTypeSelect.addEventListener('change', () => { if (parsedData) applyVisualization(); });
 

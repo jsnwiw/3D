@@ -17,166 +17,221 @@
         <div id="tooltip-value"></div>
     </div>
 
-    <!-- 3D → 2D 동기화 라벨 컨테이너 (3D 위치에 DOM 라벨 표시) -->
+    <!-- 3D → 2D 동기화 라벨 컨테이너 -->
     <div id="label-layer"></div>
 
     <!-- 상단 컨트롤 바 -->
-    <div id="top-bar">
+    <header id="top-bar">
         <div class="top-bar-left">
             <h1>📊 3D 데이터 시각화</h1>
-            <span id="status-indicator" class="status offline">● 오프라인</span>
+            <span id="status-indicator" class="status offline">● 대기 중</span>
         </div>
         <div class="top-bar-right">
-            <button id="btn-auto-rotate" title="3D 자동 회전 뷰">🔄 회전 뷰</button>
-            <button id="btn-reset-camera" title="카메라 리셋">🎥 기본 뷰</button>
-            <button id="btn-iso-view" title="대각 입체 뷰">📐 아이소 뷰</button>
+            <button id="btn-auto-rotate" title="3D 자동 회전 뷰">🔄 회전</button>
+            <button id="btn-reset-camera" title="카메라 리셋">🎥 기본</button>
+            <button id="btn-iso-view" title="대각 입체 뷰">📐 아이소</button>
             <button id="btn-top-view" title="위에서 보기">⬆ 탑뷰</button>
             <button id="btn-front-view" title="정면 보기">◻ 정면</button>
             <button id="btn-toggle-grid" title="그리드 토글">▦ 그리드</button>
             <button id="btn-toggle-labels" title="라벨 토글">🏷 라벨</button>
             <button id="btn-fullscreen" title="전체화면">⛶</button>
+            <button id="btn-toggle-menu" class="menu-toggle-btn" title="대시보드 메뉴 열기/닫기">☰ 메뉴</button>
         </div>
-    </div>
+    </header>
 
-    <!-- 우측 대시보드 패널 -->
-    <div id="dashboard-panel">
-        <div class="panel-section">
-            <h2>📁 데이터 소스</h2>
-            <!-- CSV 업로드 -->
-            <div id="upload-container">
-                <label for="csv-upload" class="upload-btn">📄 CSV 파일 업로드</label>
+    <!-- 독립 파일 업로드 패널 (메뉴창 밖 분리) -->
+    <div id="upload-panel" class="upload-card">
+        <div class="upload-card-top">
+            <span class="upload-badge">📂 데이터 소스</span>
+            <span id="file-name" class="file-name-text">파일을 선택해주세요</span>
+        </div>
+        <div class="upload-btn-group">
+            <label for="csv-upload" class="upload-btn">
+                📁 CSV 파일 선택
                 <input type="file" id="csv-upload" accept=".csv">
-                <span id="file-name">선택된 파일 없음</span>
-            </div>
-        </div>
-
-        <!-- 선택된 개체 상세 카드 -->
-        <div class="panel-section" id="detail-card-section" style="display:none;">
-            <h2>📌 선택된 항목</h2>
-            <div id="detail-card">
-                <div id="detail-name"></div>
-                <div id="detail-stats"></div>
-                <div id="detail-mini-chart-container">
-                    <canvas id="detail-mini-chart" height="120"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <!-- 분석 결과 -->
-        <div class="panel-section" id="analysis-section" style="display:none;">
-            <h2>📋 데이터 분석</h2>
-            <div id="analysis-result"></div>
-        </div>
-
-        <!-- 시각화 설정 -->
-        <div class="panel-section" id="viz-section" style="display:none;">
-            <h2>🎨 시각화 설정</h2>
-            <div class="control-group">
-                <label for="bar-style"><strong>🧊 3D 시각화 모드:</strong></label>
-                <select id="bar-style" style="border: 2px solid #4f46e5; font-weight: 600;">
-                    <option value="auto">🤖 데이터 특성 자동 분석 추천</option>
-                    <option value="box">📊 3D 입체 막대 (직육면체)</option>
-                    <option value="cylinder">● 3D 원기둥 타워 막대</option>
-                    <option value="pyramid">🔺 3D 피라미드 (사각뿔 타워)</option>
-                    <option value="pie">🥧 3D 파이 슬라이스 (원형 점유율)</option>
-                    <option value="donut">🍩 3D 도넛 링 차트</option>
-                    <option value="line">📈 3D 입체 튜브 라인 (추세선)</option>
-                    <option value="area">🏔️ 3D 산악형 면적 차트</option>
-                    <option value="scatter">🌐 3D 입체 산점도 (공간 좌표 구체)</option>
-                    <option value="surface">🌊 3D 곡면 서피스 (지형 맵)</option>
-                </select>
-            </div>
-            <div class="control-group">
-                <label for="chart-type-select">📊 2D 보조 차트:</label>
-                <select id="chart-type-select">
-                    <option value="auto">🤖 자동 추천</option>
-                    <option value="bar">📊 막대</option>
-                    <option value="horizontalBar">📊 가로 막대</option>
-                    <option value="line">📈 선</option>
-                    <option value="pie">🥧 파이</option>
-                    <option value="doughnut">🍩 도넛</option>
-                    <option value="scatter">⚬ 산점도</option>
-                    <option value="radar">🕸 레이더</option>
-                    <option value="polarArea">🎯 폴라</option>
-                </select>
-            </div>
-            <div class="control-group">
-                <label for="x-axis-select">X축 (라벨):</label>
-                <select id="x-axis-select"></select>
-            </div>
-            <div class="control-group">
-                <label for="y-axis-select">Y축 (값):</label>
-                <select id="y-axis-select"></select>
-            </div>
-            <button id="apply-btn" class="apply-btn">✨ 시각화 적용</button>
-        </div>
-
-        <!-- 필터링 -->
-        <div class="panel-section" id="filter-section" style="display:none;">
-            <h2>🔍 필터링</h2>
-            <div class="control-group">
-                <label for="data-filter">카테고리 필터:</label>
-                <select id="data-filter">
-                    <option value="all">전체 보기</option>
-                </select>
-            </div>
-            <div class="control-group">
-                <label for="range-min">수치 범위:</label>
-                <div class="range-row">
-                    <input type="number" id="range-min" placeholder="최소">
-                    <span>~</span>
-                    <input type="number" id="range-max" placeholder="최대">
-                    <button id="btn-apply-range" class="small-btn">적용</button>
-                </div>
-            </div>
-            <div class="control-group">
-                <label for="sort-select">정렬:</label>
-                <select id="sort-select">
-                    <option value="none">원본 순서</option>
-                    <option value="asc">오름차순</option>
-                    <option value="desc">내림차순</option>
-                </select>
-            </div>
-        </div>
-
-        <!-- 조명/카메라 설정 -->
-        <div class="panel-section collapsible" id="settings-section">
-            <h2 class="collapsible-header">⚙️ 3D 환경 설정 <span class="chevron">▾</span></h2>
-            <div class="collapsible-body" style="display:none;">
-                <div class="control-group">
-                    <label for="ambient-intensity">환경광 강도:</label>
-                    <input type="range" id="ambient-intensity" min="0" max="2" step="0.1" value="0.5">
-                </div>
-                <div class="control-group">
-                    <label for="point-intensity">포인트 라이트:</label>
-                    <input type="range" id="point-intensity" min="0" max="3" step="0.1" value="1.2">
-                </div>
-                <div class="control-group">
-                    <label for="camera-fov">카메라 FOV:</label>
-                    <input type="range" id="camera-fov" min="30" max="100" step="1" value="55">
-                </div>
-                <div class="control-group">
-                    <label for="bg-color">배경색:</label>
-                    <input type="color" id="bg-color" value="#0f172a">
-                </div>
-                <div class="control-group">
-                    <label for="color-theme-select">🎨 3D 색상 테마:</label>
-                    <select id="color-theme-select">
-                        <option value="vibrant">🌈 비비드 레인보우</option>
-                        <option value="ocean">🌊 오션 블루/시안</option>
-                        <option value="neon">⚡ 네온 사이버펑크</option>
-                        <option value="sunset">🌅 선셋 오렌지/핑크</option>
-                        <option value="emerald">🌿 에메랄드 그린</option>
-                    </select>
-                </div>
-            </div>
+            </label>
+            <button type="button" id="btn-load-sample" class="sample-btn" title="기본 샘플 데이터 즉시 불러오기">
+                📋 샘플 데이터
+            </button>
         </div>
     </div>
+
+    <!-- 우측 메뉴 패널 (업로드 제외한 모든 상세/분석/시각화/필터/환경 설정 포함) -->
+    <aside id="menu-panel" class="menu-drawer open">
+        <div class="menu-header">
+            <h3>⚙️ 대시보드 메뉴</h3>
+            <button id="btn-close-menu" class="close-menu-btn" title="메뉴 닫기">✕</button>
+        </div>
+
+        <div class="menu-content">
+            <!-- 1. 선택된 개체 상세 카드 섹션 -->
+            <div class="accordion-item" id="detail-card-section" style="display:none;">
+                <div class="accordion-header" data-target="detail-card-body">
+                    <span class="header-title">📌 선택된 항목 상세</span>
+                    <span class="chevron">▾</span>
+                </div>
+                <div class="accordion-body" id="detail-card-body">
+                    <div id="detail-card">
+                        <div id="detail-name"></div>
+                        <div id="detail-stats"></div>
+                        <div id="detail-mini-chart-container">
+                            <canvas id="detail-mini-chart" height="120"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. 분석 결과 섹션 -->
+            <div class="accordion-item" id="analysis-section" style="display:none;">
+                <div class="accordion-header" data-target="analysis-body">
+                    <span class="header-title">📋 데이터 통계 분석</span>
+                    <span class="chevron">▾</span>
+                </div>
+                <div class="accordion-body" id="analysis-body">
+                    <div id="analysis-result"></div>
+                </div>
+            </div>
+
+            <!-- 3. 시각화 설정 섹션 -->
+            <div class="accordion-item active" id="viz-section" style="display:none;">
+                <div class="accordion-header active" data-target="viz-body">
+                    <span class="header-title">🎨 시각화 설정 & 추천</span>
+                    <span class="chevron">▴</span>
+                </div>
+                <div class="accordion-body open" id="viz-body">
+                    <!-- 추천 시각화 자동 적용 안내 -->
+                    <div class="auto-recommend-box">
+                        <div class="recommend-toggle-row">
+                            <label for="auto-recommend-toggle" class="recommend-toggle-label">
+                                <input type="checkbox" id="auto-recommend-toggle" checked>
+                                <span>🤖 추천 자동 적용</span>
+                            </label>
+                            <span id="auto-recommend-status-badge" class="badge-auto-on">ON (자동)</span>
+                        </div>
+                        <div id="applied-recommend-notice" class="applied-notice-text">
+                            선택한 데이터에 맞춰 3D 및 2D 시각화가 최적으로 자동 적용됩니다.
+                        </div>
+                        <button type="button" id="btn-force-recommend" class="btn-rec-action">
+                            ✨ 추천 시각화 즉시 적용
+                        </button>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="x-axis-select"><strong>X축 (라벨/기준):</strong></label>
+                        <select id="x-axis-select"></select>
+                    </div>
+                    <div class="control-group">
+                        <label for="y-axis-select"><strong>Y축 (수치/지표):</strong></label>
+                        <select id="y-axis-select"></select>
+                    </div>
+                    <div class="control-group">
+                        <label for="bar-style"><strong>🧊 3D 시각화 스타일:</strong></label>
+                        <select id="bar-style">
+                            <option value="auto">🤖 최적 3D 자동 분석 추천</option>
+                            <option value="cylinder">● 3D 원기둥 타워 막대 (매출/수량)</option>
+                            <option value="pyramid">🔺 3D 피라미드 타워 (비용/손실)</option>
+                            <option value="donut">🍩 3D 도넛 링 차트 (이익/마진)</option>
+                            <option value="pie">🥧 3D 파이 슬라이스 (원형 비중)</option>
+                            <option value="box">📊 3D 입체 직육면체 막대 (표준)</option>
+                            <option value="line">📈 3D 입체 튜브 라인 (추세선)</option>
+                            <option value="area">🏔️ 3D 산악형 면적 차트 (볼륨)</option>
+                            <option value="scatter">🌐 3D 입체 산점도 (공간 좌표)</option>
+                            <option value="surface">🌊 3D 곡면 서피스 (지형 맵)</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="chart-type-select"><strong>📊 2D 보조 차트:</strong></label>
+                        <select id="chart-type-select">
+                            <option value="auto">🤖 최적 2D 자동 추천</option>
+                            <option value="bar">📊 세로 막대 (규모 비교)</option>
+                            <option value="horizontalBar">📊 가로 막대 (다항목)</option>
+                            <option value="doughnut">🍩 도넛 차트 (구성비)</option>
+                            <option value="pie">🥧 파이 차트 (점유율)</option>
+                            <option value="polarArea">🎯 폴라 에어리어 (성과)</option>
+                            <option value="line">📈 꺾은선 (시계열 추세)</option>
+                            <option value="scatter">⚬ 산점도 (수치 상관)</option>
+                            <option value="radar">🕸 레이더 차트 (다면 평가)</option>
+                        </select>
+                    </div>
+                    <button id="apply-btn" class="apply-btn">✨ 시각화 수동 적용</button>
+                </div>
+            </div>
+
+            <!-- 4. 필터링 섹션 -->
+            <div class="accordion-item" id="filter-section" style="display:none;">
+                <div class="accordion-header" data-target="filter-body">
+                    <span class="header-title">🔍 데이터 필터링 & 정렬</span>
+                    <span class="chevron">▾</span>
+                </div>
+                <div class="accordion-body" id="filter-body">
+                    <div class="control-group">
+                        <label for="data-filter">카테고리 필터:</label>
+                        <select id="data-filter">
+                            <option value="all">전체 보기</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label for="range-min">수치 범위:</label>
+                        <div class="range-row">
+                            <input type="number" id="range-min" placeholder="최소">
+                            <span>~</span>
+                            <input type="number" id="range-max" placeholder="최대">
+                            <button id="btn-apply-range" class="small-btn">적용</button>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label for="sort-select">정렬:</label>
+                        <select id="sort-select">
+                            <option value="none">원본 순서</option>
+                            <option value="asc">오름차순</option>
+                            <option value="desc">내림차순</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. 3D 환경 설정 섹션 -->
+            <div class="accordion-item" id="settings-section">
+                <div class="accordion-header" data-target="settings-body">
+                    <span class="header-title">⚙️ 3D 환경 & 조명 설정</span>
+                    <span class="chevron">▾</span>
+                </div>
+                <div class="accordion-body" id="settings-body">
+                    <div class="control-group">
+                        <label for="ambient-intensity">환경광 강도:</label>
+                        <input type="range" id="ambient-intensity" min="0" max="2" step="0.1" value="0.8">
+                    </div>
+                    <div class="control-group">
+                        <label for="point-intensity">포인트 라이트:</label>
+                        <input type="range" id="point-intensity" min="0" max="3" step="0.1" value="0.8">
+                    </div>
+                    <div class="control-group">
+                        <label for="camera-fov">카메라 FOV:</label>
+                        <input type="range" id="camera-fov" min="30" max="100" step="1" value="55">
+                    </div>
+                    <div class="control-group">
+                        <label for="bg-color">배경색:</label>
+                        <input type="color" id="bg-color" value="#f1f5f9">
+                    </div>
+                    <div class="control-group">
+                        <label for="color-theme-select">🎨 3D 색상 테마:</label>
+                        <select id="color-theme-select">
+                            <option value="vibrant">🌈 비비드 레인보우</option>
+                            <option value="ocean">🌊 오션 블루/시안</option>
+                            <option value="neon">⚡ 네온 사이버펑크</option>
+                            <option value="sunset">🌅 선셋 오렌지/핑크</option>
+                            <option value="emerald">🌿 에메랄드 그린</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </aside>
 
     <!-- 2D 차트 패널 (좌측 하단) -->
     <div id="chart-panel" style="display:none;">
         <div id="chart-header">
-            <h3 id="chart-title">차트</h3>
+            <h3 id="chart-title">2D 보조 분석 차트</h3>
             <div>
                 <button id="chart-maximize-btn" class="panel-ctrl-btn" title="확대">⛶</button>
                 <button id="chart-close-btn" class="panel-ctrl-btn close" title="닫기">✕</button>
@@ -186,7 +241,7 @@
             <canvas id="chart-2d"></canvas>
         </div>
         <div id="data-table-container">
-            <h4>📄 데이터 <span id="row-count"></span></h4>
+            <h4>📄 데이터 표 <span id="row-count"></span></h4>
             <div id="data-table-scroll">
                 <table id="data-table"></table>
             </div>
