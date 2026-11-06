@@ -164,24 +164,6 @@ body, html {
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
-/* ===== API 컨테이너 ===== */
-#api-container {
-    display: flex; flex-direction: column; gap: 8px;
-    margin-top: 10px; padding-top: 10px;
-    border-top: 1px solid rgba(99,102,241,0.1);
-}
-.api-btn {
-    background: linear-gradient(135deg, #10b981, #059669);
-    color: white; border: none; padding: 8px 14px;
-    border-radius: 8px; font-size: 13px; font-weight: 600;
-    cursor: pointer; transition: all 0.3s;
-}
-.api-btn:hover {
-    background: linear-gradient(135deg, #34d399, #10b981);
-    box-shadow: 0 4px 12px rgba(16,185,129,0.3);
-}
-#api-status { font-size: 11px; color: #64748b; min-height: 16px; }
-
 /* ===== 상세 카드 ===== */
 #detail-card {
     background: rgba(30, 41, 59, 0.7);

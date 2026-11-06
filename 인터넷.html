@@ -46,21 +46,6 @@
                 <input type="file" id="csv-upload" accept=".csv">
                 <span id="file-name">선택된 파일 없음</span>
             </div>
-            <!-- 공공 데이터 API 로드 -->
-            <div id="api-container">
-                <label for="api-select">실시간 공공데이터:</label>
-                <select id="api-select">
-                    <option value="">-- 데이터 선택 --</option>
-                    <option value="population">🏙 전국 시도별 인구</option>
-                    <option value="budget">💰 정부 부처별 예산</option>
-                    <option value="energy">⚡ 에너지원별 발전량</option>
-                    <option value="export">📦 주요 수출품목 통계</option>
-                    <option value="temperature">🌡 주요 도시 기온</option>
-                    <option value="covid">🏥 시도별 의료기관 수</option>
-                </select>
-                <button id="btn-load-api" class="api-btn">불러오기</button>
-                <div id="api-status"></div>
-            </div>
         </div>
 
         <!-- 선택된 개체 상세 카드 -->
