@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>3D 데이터 시각화 대시보드</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <!-- 3D 뷰포트 -->
+    <div id="canvas-container"></div>
+
+    <!-- 3D → 2D 동기화 플로팅 툴팁 (호버 시 표시) -->
+    <div id="hover-tooltip" class="tooltip-3d" style="display:none;">
+        <div id="tooltip-name"></div>
+        <div id="tooltip-value"></div>
+    </div>
+
+    <!-- 3D → 2D 동기화 라벨 컨테이너 (3D 위치에 DOM 라벨 표시) -->
+    <div id="label-layer"></div>
+
+    <!-- 상단 컨트롤 바 -->
+    <div id="top-bar">
+        <div class="top-bar-left">
+            <h1>📊 3D 데이터 시각화</h1>
+            <span id="status-indicator" class="status offline">● 오프라인</span>
+        </div>
+        <div class="top-bar-right">
+            <button id="btn-reset-camera" title="카메라 리셋">🎥 리셋</button>
+            <button id="btn-top-view" title="위에서 보기">⬆ 탑뷰</button>
+            <button id="btn-front-view" title="정면 보기">◻ 정면</button>
+            <button id="btn-toggle-grid" title="그리드 토글">▦ 그리드</button>
+            <button id="btn-toggle-labels" title="라벨 토글">🏷 라벨</button>
+            <button id="btn-fullscreen" title="전체화면">⛶</button>
+        </div>
+    </div>
+
+    <!-- 우측 대시보드 패널 -->
+    <div id="dashboard-panel">
+        <div class="panel-section">
+            <h2>📁 데이터 소스</h2>
+            <!-- CSV 업로드 -->
+            <div id="upload-container">
+                <label for="csv-upload" class="upload-btn">📄 CSV 파일 업로드</label>
+                <input type="file" id="csv-upload" accept=".csv">
+                <span id="file-name">선택된 파일 없음</span>
+            </div>
+            <!-- 공공 데이터 API 로드 -->
+            <div id="api-container">
+                <label for="api-select">실시간 공공데이터:</label>
+                <select id="api-select">
+                    <option value="">-- 데이터 선택 --</option>
+                    <option value="population">🏙 전국 시도별 인구</option>
+                    <option value="budget">💰 정부 부처별 예산</option>
+                    <option value="energy">⚡ 에너지원별 발전량</option>
+                    <option value="export">📦 주요 수출품목 통계</option>
+                    <option value="temperature">🌡 주요 도시 기온</option>
+                    <option value="covid">🏥 시도별 의료기관 수</option>
+                </select>
+                <button id="btn-load-api" class="api-btn">불러오기</button>
+                <div id="api-status"></div>
+            </div>
+        </div>
+
+        <!-- 선택된 개체 상세 카드 -->
+        <div class="panel-section" id="detail-card-section" style="display:none;">
+            <h2>📌 선택된 항목</h2>
+            <div id="detail-card">
+                <div id="detail-name"></div>
+                <div id="detail-stats"></div>
+                <div id="detail-mini-chart-container">
+                    <canvas id="detail-mini-chart" height="120"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 분석 결과 -->
+        <div class="panel-section" id="analysis-section" style="display:none;">
+            <h2>📋 데이터 분석</h2>
+            <div id="analysis-result"></div>
+        </div>
+
+        <!-- 시각화 설정 -->
+        <div class="panel-section" id="viz-section" style="display:none;">
+            <h2>🎨 시각화 설정</h2>
+            <div class="control-group">
+                <label for="chart-type-select">차트 타입:</label>
+                <select id="chart-type-select">
+                    <option value="auto">🤖 자동 추천</option>
+                    <option value="bar">📊 막대</option>
+                    <option value="horizontalBar">📊 가로 막대</option>
+                    <option value="line">📈 선</option>
+                    <option value="pie">🥧 파이</option>
+                    <option value="doughnut">🍩 도넛</option>
+                    <option value="scatter">⚬ 산점도</option>
+                    <option value="radar">🕸 레이더</option>
+                    <option value="polarArea">🎯 폴라</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="x-axis-select">X축 (라벨):</label>
+                <select id="x-axis-select"></select>
+            </div>
+            <div class="control-group">
+                <label for="y-axis-select">Y축 (값):</label>
+                <select id="y-axis-select"></select>
+            </div>
+            <button id="apply-btn" class="apply-btn">✨ 시각화 적용</button>
+        </div>
+
+        <!-- 필터링 -->
+        <div class="panel-section" id="filter-section" style="display:none;">
+            <h2>🔍 필터링</h2>
+            <div class="control-group">
+                <label for="data-filter">카테고리 필터:</label>
+                <select id="data-filter">
+                    <option value="all">전체 보기</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="range-min">수치 범위:</label>
+                <div class="range-row">
+                    <input type="number" id="range-min" placeholder="최소">
+                    <span>~</span>
+                    <input type="number" id="range-max" placeholder="최대">
+                    <button id="btn-apply-range" class="small-btn">적용</button>
+                </div>
+            </div>
+            <div class="control-group">
+                <label for="sort-select">정렬:</label>
+                <select id="sort-select">
+                    <option value="none">원본 순서</option>
+                    <option value="asc">오름차순</option>
+                    <option value="desc">내림차순</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- 조명/카메라 설정 -->
+        <div class="panel-section collapsible" id="settings-section">
+            <h2 class="collapsible-header">⚙️ 3D 환경 설정 <span class="chevron">▾</span></h2>
+            <div class="collapsible-body" style="display:none;">
+                <div class="control-group">
+                    <label for="ambient-intensity">환경광 강도:</label>
+                    <input type="range" id="ambient-intensity" min="0" max="2" step="0.1" value="0.5">
+                </div>
+                <div class="control-group">
+                    <label for="point-intensity">포인트 라이트:</label>
+                    <input type="range" id="point-intensity" min="0" max="3" step="0.1" value="1.2">
+                </div>
+                <div class="control-group">
+                    <label for="camera-fov">카메라 FOV:</label>
+                    <input type="range" id="camera-fov" min="30" max="100" step="1" value="55">
+                </div>
+                <div class="control-group">
+                    <label for="bg-color">배경색:</label>
+                    <input type="color" id="bg-color" value="#0f172a">
+                </div>
+                <div class="control-group">
+                    <label for="bar-style">막대 스타일:</label>
+                    <select id="bar-style">
+                        <option value="box">■ 박스</option>
+                        <option value="cylinder">● 원기둥</option>
+                        <option value="rounded">◼ 둥근 박스</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2D 차트 패널 (좌측 하단) -->
+    <div id="chart-panel" style="display:none;">
+        <div id="chart-header">
+            <h3 id="chart-title">차트</h3>
+            <div>
+                <button id="chart-maximize-btn" class="panel-ctrl-btn" title="확대">⛶</button>
+                <button id="chart-close-btn" class="panel-ctrl-btn close" title="닫기">✕</button>
+            </div>
+        </div>
+        <div id="chart-wrapper">
+            <canvas id="chart-2d"></canvas>
+        </div>
+        <div id="data-table-container">
+            <h4>📄 데이터 <span id="row-count"></span></h4>
+            <div id="data-table-scroll">
+                <table id="data-table"></table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Three.js -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+    <script type="module" src="main.js"></script>
+</body>
+</html>
