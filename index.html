@@ -27,7 +27,9 @@
             <span id="status-indicator" class="status offline">● 오프라인</span>
         </div>
         <div class="top-bar-right">
-            <button id="btn-reset-camera" title="카메라 리셋">🎥 리셋</button>
+            <button id="btn-auto-rotate" title="3D 자동 회전 뷰">🔄 회전 뷰</button>
+            <button id="btn-reset-camera" title="카메라 리셋">🎥 기본 뷰</button>
+            <button id="btn-iso-view" title="대각 입체 뷰">📐 아이소 뷰</button>
             <button id="btn-top-view" title="위에서 보기">⬆ 탑뷰</button>
             <button id="btn-front-view" title="정면 보기">◻ 정면</button>
             <button id="btn-toggle-grid" title="그리드 토글">▦ 그리드</button>
@@ -70,7 +72,22 @@
         <div class="panel-section" id="viz-section" style="display:none;">
             <h2>🎨 시각화 설정</h2>
             <div class="control-group">
-                <label for="chart-type-select">차트 타입:</label>
+                <label for="bar-style"><strong>🧊 3D 시각화 모드:</strong></label>
+                <select id="bar-style" style="border: 2px solid #4f46e5; font-weight: 600;">
+                    <option value="auto">🤖 데이터 특성 자동 분석 추천</option>
+                    <option value="box">📊 3D 입체 막대 (직육면체)</option>
+                    <option value="cylinder">● 3D 원기둥 타워 막대</option>
+                    <option value="pyramid">🔺 3D 피라미드 (사각뿔 타워)</option>
+                    <option value="pie">🥧 3D 파이 슬라이스 (원형 점유율)</option>
+                    <option value="donut">🍩 3D 도넛 링 차트</option>
+                    <option value="line">📈 3D 입체 튜브 라인 (추세선)</option>
+                    <option value="area">🏔️ 3D 산악형 면적 차트</option>
+                    <option value="scatter">🌐 3D 입체 산점도 (공간 좌표 구체)</option>
+                    <option value="surface">🌊 3D 곡면 서피스 (지형 맵)</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="chart-type-select">📊 2D 보조 차트:</label>
                 <select id="chart-type-select">
                     <option value="auto">🤖 자동 추천</option>
                     <option value="bar">📊 막대</option>
@@ -143,11 +160,13 @@
                     <input type="color" id="bg-color" value="#0f172a">
                 </div>
                 <div class="control-group">
-                    <label for="bar-style">막대 스타일:</label>
-                    <select id="bar-style">
-                        <option value="box">■ 박스</option>
-                        <option value="cylinder">● 원기둥</option>
-                        <option value="rounded">◼ 둥근 박스</option>
+                    <label for="color-theme-select">🎨 3D 색상 테마:</label>
+                    <select id="color-theme-select">
+                        <option value="vibrant">🌈 비비드 레인보우</option>
+                        <option value="ocean">🌊 오션 블루/시안</option>
+                        <option value="neon">⚡ 네온 사이버펑크</option>
+                        <option value="sunset">🌅 선셋 오렌지/핑크</option>
+                        <option value="emerald">🌿 에메랄드 그린</option>
                     </select>
                 </div>
             </div>

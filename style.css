@@ -363,3 +363,9 @@ input[type="color"] {
     #chart-panel { display: none !important; }
     .top-bar-right button span { display: none; }
 }
+
+.top-bar-right button.active {
+    background: #e0e7ff !important;
+    border-color: #6366f1 !important;
+    color: #4338ca !important;
+}

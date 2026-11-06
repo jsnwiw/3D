@@ -113,7 +113,7 @@ const tooltipValue = $('tooltip-value');
 const labelLayer = $('label-layer');
 
 // ════════════════════════════════════════════════════════════
-// 4. 카메라 제어 (부드러운 전환)
+// 4. 카메라 제어 (부드러운 전환 & 프리셋 뷰)
 // ════════════════════════════════════════════════════════════
 function animateCamera(targetPos, targetLookAt, duration = 800) {
     const startPos = camera.position.clone();
@@ -140,6 +140,10 @@ $('btn-reset-camera').addEventListener('click', () => {
     const spread = Math.max(dataObjects.length * 1.3, 10);
     animateCamera([0, spread * 0.5 + 5, spread * 0.7 + 8], [0, 2, 0]);
 });
+$('btn-iso-view').addEventListener('click', () => {
+    const spread = Math.max(dataObjects.length * 1.3, 10);
+    animateCamera([spread * 0.7, spread * 0.6 + 6, spread * 0.7], [0, 1.5, 0]);
+});
 $('btn-top-view').addEventListener('click', () => {
     const spread = Math.max(dataObjects.length * 1.3, 10);
     animateCamera([0, spread + 10, 0.1], [0, 0, 0]);
@@ -147,6 +151,12 @@ $('btn-top-view').addEventListener('click', () => {
 $('btn-front-view').addEventListener('click', () => {
     const spread = Math.max(dataObjects.length * 1.3, 10);
     animateCamera([0, 4, spread * 0.8 + 10], [0, 3, 0]);
+});
+$('btn-auto-rotate').addEventListener('click', () => {
+    controls.autoRotate = !controls.autoRotate;
+    controls.autoRotateSpeed = 2.0;
+    $('btn-auto-rotate').style.background = controls.autoRotate ? '#e0e7ff' : '';
+    $('btn-auto-rotate').style.color = controls.autoRotate ? '#4338ca' : '';
 });
 $('btn-toggle-grid').addEventListener('click', () => {
     gridHelper.visible = !gridHelper.visible;
@@ -185,6 +195,11 @@ $('bg-color').addEventListener('input', e => {
 $('bar-style').addEventListener('change', () => {
     if (parsedData && analysisResult) applyVisualization();
 });
+if ($('color-theme-select')) {
+    $('color-theme-select').addEventListener('change', () => {
+        if (parsedData && analysisResult) applyVisualization();
+    });
+}
 
 // ════════════════════════════════════════════════════════════
 // 6. CSV 파싱
@@ -417,6 +432,40 @@ function inferBest3DStyle(labels, values, analysis) {
     return count > 10 ? 'cylinder' : 'box';
 }
 
+// 색상 테마 팔레트 생성 함수
+function getThemeColor(index, count, alpha = 1) {
+    const theme = $('color-theme-select') ? $('color-theme-select').value : 'vibrant';
+    const t = count > 1 ? index / (count - 1) : 0;
+    
+    switch (theme) {
+        case 'ocean': {
+            // 깊은 인디고 -> 아쿠아 시안
+            const hue = 190 + t * 45;
+            return new THREE.Color(`hsl(${hue}, 85%, ${45 + t * 15}%)`);
+        }
+        case 'neon': {
+            // 사이버펑크 핑크 -> 일렉트릭 퍼플 -> 네온 블루
+            const hue = (280 + index * 40) % 360;
+            return new THREE.Color(`hsl(${hue}, 95%, 60%)`);
+        }
+        case 'sunset': {
+            // 따뜻한 앰버 옐로우 -> 오렌지 -> 핫핑크
+            const hue = 35 + t * 310;
+            return new THREE.Color(`hsl(${hue % 360}, 90%, 55%)`);
+        }
+        case 'emerald': {
+            // 산뜻한 라임 -> 에메랄드 딥그린 -> 민트
+            const hue = 140 + t * 35;
+            return new THREE.Color(`hsl(${hue}, 80%, ${40 + t * 15}%)`);
+        }
+        case 'vibrant':
+        default: {
+            const hue = (index * (360 / Math.max(count, 1))) % 360;
+            return new THREE.Color(`hsl(${hue}, 75%, 52%)`);
+        }
+    }
+}
+
 function render3DVisualization(labels, values) {
     clearScene();
     if (!values || !values.length) return;
@@ -428,9 +477,12 @@ function render3DVisualization(labels, values) {
 
     switch (selectedStyle) {
         case 'pie': render3DPie(labels, values); break;
+        case 'donut': render3DDonut(labels, values); break;
         case 'line': render3DLine(labels, values); break;
+        case 'area': render3DArea(labels, values); break;
         case 'scatter': render3DScatter(labels, values); break;
         case 'surface': render3DSurface(labels, values); break;
+        case 'pyramid': render3DBarMesh(labels, values, 'pyramid'); break;
         case 'cylinder': render3DBarMesh(labels, values, 'cylinder'); break;
         case 'box':
         default:
@@ -446,21 +498,27 @@ function render3DBarMesh(labels, values, shape = 'box') {
     labels.forEach((label, i) => {
         const val = values[i];
         const h = Math.max(val * scale, 0.1);
-        const hue = (i * (360 / Math.max(count, 1))) % 360;
-        const color = new THREE.Color(`hsl(${hue}, 70%, 50%)`);
+        const color = getThemeColor(i, count);
 
-        const geometry = (shape === 'cylinder')
-            ? new THREE.CylinderGeometry(0.38, 0.38, h, 24)
-            : new THREE.BoxGeometry(0.72, h, 0.72);
+        let geometry;
+        if (shape === 'cylinder') {
+            geometry = new THREE.CylinderGeometry(0.38, 0.38, h, 24);
+        } else if (shape === 'pyramid') {
+            // 사각뿔 피라미드 타워 (top radius: 0, bottom radius: 0.5, 4 segments)
+            geometry = new THREE.CylinderGeometry(0.02, 0.55, h, 4);
+        } else {
+            geometry = new THREE.BoxGeometry(0.72, h, 0.72);
+        }
 
         const material = new THREE.MeshStandardMaterial({
-            color, metalness: 0.2, roughness: 0.4,
-            emissive: color.clone().multiplyScalar(0.05)
+            color, metalness: 0.25, roughness: 0.35,
+            emissive: color.clone().multiplyScalar(0.08)
         });
 
         const mesh = new THREE.Mesh(geometry, material);
         const xPos = (i - (count - 1) / 2) * 1.35;
         mesh.position.set(xPos, h / 2, 0);
+        if (shape === 'pyramid') mesh.rotation.y = Math.PI / 4;
         mesh.castShadow = true;
         mesh.receiveShadow = true;
         mesh.userData = { name: label, value: val, index: i, baseColor: color.clone(), baseY: h / 2 };
@@ -475,9 +533,17 @@ function render3DBarMesh(labels, values, shape = 'box') {
 }
 
 function render3DPie(labels, values) {
+    render3DRing(labels, values, 0);
+}
+
+function render3DDonut(labels, values) {
+    render3DRing(labels, values, 2.2);
+}
+
+function render3DRing(labels, values, innerRadius = 0) {
     const total = values.reduce((sum, v) => sum + Math.max(v, 0), 0) || 1;
-    const radius = 5;
-    const thickness = 1.2;
+    const outerRadius = 5.2;
+    const thickness = 1.3;
     let currentAngle = 0;
     const count = labels.length;
 
@@ -486,13 +552,19 @@ function render3DPie(labels, values) {
         const sliceAngle = (Math.max(val, 0) / total) * Math.PI * 2;
         if (sliceAngle <= 0.001) return;
 
-        const hue = (i * (360 / Math.max(count, 1))) % 360;
-        const color = new THREE.Color(`hsl(${hue}, 75%, 50%)`);
-
+        const color = getThemeColor(i, count);
         const shape = new THREE.Shape();
-        shape.moveTo(0, 0);
-        shape.arc(0, 0, radius, currentAngle, currentAngle + sliceAngle, false);
-        shape.lineTo(0, 0);
+
+        if (innerRadius > 0) {
+            // 도넛 링 섹터
+            shape.absarc(0, 0, outerRadius, currentAngle, currentAngle + sliceAngle, false);
+            shape.absarc(0, 0, innerRadius, currentAngle + sliceAngle, currentAngle, true);
+        } else {
+            // 파이 부채꼴
+            shape.moveTo(0, 0);
+            shape.arc(0, 0, outerRadius, currentAngle, currentAngle + sliceAngle, false);
+            shape.lineTo(0, 0);
+        }
 
         const extrudeSettings = {
             depth: thickness, bevelEnabled: true, bevelSegments: 3,
@@ -503,8 +575,8 @@ function render3DPie(labels, values) {
         geometry.rotateX(-Math.PI / 2);
 
         const material = new THREE.MeshStandardMaterial({
-            color, metalness: 0.2, roughness: 0.4,
-            emissive: color.clone().multiplyScalar(0.05)
+            color, metalness: 0.25, roughness: 0.35,
+            emissive: color.clone().multiplyScalar(0.06)
         });
 
         const mesh = new THREE.Mesh(geometry, material);
@@ -513,8 +585,9 @@ function render3DPie(labels, values) {
         mesh.receiveShadow = true;
 
         const midAngle = currentAngle + sliceAngle / 2;
-        const labelX = Math.cos(midAngle) * (radius + 1.2);
-        const labelZ = -Math.sin(midAngle) * (radius + 1.2);
+        const labelRadius = outerRadius + 1.2;
+        const labelX = Math.cos(midAngle) * labelRadius;
+        const labelZ = -Math.sin(midAngle) * labelRadius;
 
         mesh.userData = {
             name: `${label} (${((val / total) * 100).toFixed(1)}%)`,
@@ -528,6 +601,68 @@ function render3DPie(labels, values) {
     });
 
     animateCamera([0, 11, 14], [0, 1, 0]);
+}
+
+function render3DArea(labels, values) {
+    const maxVal = Math.max(...values, 1);
+    const scale = 7 / maxVal;
+    const count = labels.length;
+    if (count < 2) {
+        render3DBarMesh(labels, values, 'box');
+        return;
+    }
+
+    const depth = 2.0;
+    const shape = new THREE.Shape();
+    const startX = (0 - (count - 1) / 2) * 1.5;
+    shape.moveTo(startX, 0);
+
+    const points = [];
+    labels.forEach((label, i) => {
+        const val = values[i];
+        const y = Math.max(val * scale, 0.2);
+        const x = (i - (count - 1) / 2) * 1.5;
+        shape.lineTo(x, y);
+        points.push({ x, y, val, label, i });
+    });
+
+    const endX = ((count - 1) - (count - 1) / 2) * 1.5;
+    shape.lineTo(endX, 0);
+    shape.lineTo(startX, 0);
+
+    const extrudeSettings = { depth: depth, bevelEnabled: false };
+    const areaGeo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+    const areaMat = new THREE.MeshStandardMaterial({
+        color: 0x4f46e5, metalness: 0.2, roughness: 0.35,
+        transparent: true, opacity: 0.85, side: THREE.DoubleSide
+    });
+    const areaMesh = new THREE.Mesh(areaGeo, areaMat);
+    areaMesh.position.set(0, 0, -depth / 2);
+    areaMesh.receiveShadow = true;
+    areaMesh.castShadow = true;
+    scene.add(areaMesh);
+    extraVisuals.push(areaMesh);
+
+    // 각 정점에 인터랙티브 데이터 노드 구체 배치
+    points.forEach(p => {
+        const color = getThemeColor(p.i, count);
+        const nodeGeo = new THREE.SphereGeometry(0.35, 20, 20);
+        const nodeMat = new THREE.MeshStandardMaterial({
+            color, metalness: 0.3, roughness: 0.3,
+            emissive: color.clone().multiplyScalar(0.2)
+        });
+        const nodeMesh = new THREE.Mesh(nodeGeo, nodeMat);
+        nodeMesh.position.set(p.x, p.y, 0);
+        nodeMesh.castShadow = true;
+        nodeMesh.userData = { name: p.label, value: p.val, index: p.i, baseColor: color.clone(), baseY: p.y };
+
+        scene.add(nodeMesh);
+        dataObjects.push(nodeMesh);
+        addDomLabel(p.label, p.x, -0.3, 0);
+    });
+
+    const spread = count * 1.5;
+    animateCamera([spread * 0.5, spread * 0.4 + 5, spread * 0.7 + 7], [0, 2, 0]);
 }
 
 function render3DLine(labels, values) {
